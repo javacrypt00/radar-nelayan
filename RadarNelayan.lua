@@ -10,7 +10,7 @@ local TweenService = game:GetService("TweenService")
 
 -- // CONFIGURATION //
 local WEBHOOK_URL = ""
-local WEBHOOK_AVATAR = "" -- isi dengan URL gambar PNG kamu
+local WEBHOOK_AVATAR = "" 
 local PROXY = "https://square-haze-a007.remediashop.workers.dev"
 local SCRIPT_ACTIVE = false
 
@@ -238,7 +238,7 @@ local function CheckAndSend(rawMsg)
     local imageUrl = FishImageURL[baseName] or (FishImageCache[baseName] and (PROXY .. "/asset/" .. FishImageCache[baseName])) or nil
     local fishLabel = "**" .. data.fish .. "**"
     if mutasi then fishLabel = "**" .. data.fish .. "** *(mutasi: " .. baseName .. ")*" end
-    SendWebhook("🚨 SECRET FISH DETECTED!", nil, 1752220, {
+    SendWebhook("🦈 SECRET FISH TERTANGKAP!", nil, 1752220, {
         {["name"] = "Pemain", ["value"] = "**" .. data.player .. "**", ["inline"] = true},
         {["name"] = "Ikan",   ["value"] = fishLabel,                   ["inline"] = true},
         {["name"] = "Berat",  ["value"] = data.weight,                 ["inline"] = true},
