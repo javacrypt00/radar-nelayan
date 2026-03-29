@@ -9,9 +9,9 @@ local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
 
 -- // CONFIGURATION //
-local WEBHOOK_FISH = ""     -- webhook khusus ikan secret
-local WEBHOOK_PLAYER = ""   -- webhook khusus player join/leave
-local WEBHOOK_AVATAR = ""   -- isi dengan URL gambar PNG kamu
+local WEBHOOK_FISH = ""    -- webhook khusus ikan secret
+local WEBHOOK_PLAYER = ""  -- webhook khusus player join/leave
+local WEBHOOK_AVATAR = ""  -- isi dengan URL gambar PNG kamu
 local PROXY = "https://square-haze-a007.remediashop.workers.dev"
 local SCRIPT_ACTIVE = false
 
@@ -20,7 +20,7 @@ local SecretFishList = {
     "Crystal Crab", "Orca", "Zombie Shark", "Zombie Megalodon", "Dead Zombie Shark",
     "Blob Shark", "Ghost Shark", "Skeleton Narwhal", "Ghost Worm Fish", "Worm Fish",
     "Megalodon", "1x1x1x1 Comet Shark", "Bloodmoon Whale", "Lochness Monster",
-    "Monster Shark", "Eerie Shark", "Great Whale", "Frostborn Shark", "Thin Armor Shark",
+    "Monster Shark", "Eerie Shark", "Great Whale", "Frostborn Shark", "Thin Armored Shark",
     "Scare", "Queen Crab", "King Crab", "Cryoshade Glider", "Panther Eel",
     "Giant Squid", "Depthseeker Ray", "Robot Kraken", "Mosasaur Shark", "King Jelly",
     "Bone Whale", "Elshark Gran Maja", "Elpirate Gran Maja", "Ancient Whale",
@@ -29,7 +29,10 @@ local SecretFishList = {
     "Emerald Winter Whale", "Winter Frost Shark", "Icebreaker Whale", "Leviathan",
     "Pirate Megalodon", "Viridis Lurker", "Cursed Kraken", "Ancient Magma Whale",
     "Rainbow Comet Shark", "Love Nessie", "Broken Heart Nessie",
-    "Mutant Runic Koi", "Ketupat Whale",
+    "Mutant Runic Koi", "Ketupat Whale", "Cosmic Mutant Shark",
+    "Bonemaw Tyrant",
+    -- Forgotten Tier
+    "Sea Eater", "Thunderzilla"
 }
 
 -- // DATABASE FORGOTTEN TIER //
@@ -53,7 +56,9 @@ local FishImageURL = {
     ["Ancient Lochness Monster"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Ancient%20Lochness%20Monster.png",
     ["Ancient Magma Whale"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Ancient%20Magma%20Whale.png",
     ["Ancient Whale"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Ancient%20Whale.png",
+    ["Bloodmoon Whale"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Bloodmoon%20Whale.png",
     ["Blob Shark"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Blob%20Shark.png",
+    ["Bonemaw Tyrant"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Bonemaw%20Tyrant.png",
     ["Bone Whale"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Bone%20Whale.png",
     ["Cosmic Mutant Shark"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Cosmic%20Mutant%20Shark.png",
     ["Cryoshade Glider"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Cryoshade%20Glider.png",
@@ -83,13 +88,14 @@ local FishImageURL = {
     ["Ruby"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Ruby%20Gemstone.png",
     ["Sea Eater"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Sea%20Eater.png",
     ["Skeleton Narwhal"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Skeleton%20Narwhal.png",
-    ["Thin Armor Shark"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Thin%20Armor%20Shark.png",
+    ["Thin Armored Shark"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Thin%20Armor%20Shark.png",
     ["Thunderzilla"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Thunderzilla.png",
     ["Worm Fish"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Worm%20Fish.png",
 }
 
 local FishImageCache = {}
 local AvatarCache = {}
+local LeaveTimers = {}
 
 -- // WEBHOOK SENDER — pisah fish vs player //
 local function SendWebhookTo(webhookUrl, title, description, color, fields, imageUrl, thumbUrl)
@@ -213,6 +219,7 @@ local function CheckAndSend(rawMsg)
     local targetPlayer = Players:FindFirstChild(data.player)
     local avatarUrl = targetPlayer and (PROXY .. "/avatar/" .. tostring(targetPlayer.UserId) .. "?t=" .. tostring(os.time())) or nil
 
+    -- // CEK LEGENDARY CRYSTALIZED (prioritas tertinggi) //
     local legendaryBase = FindLegendaryCrystal(data.fish)
     if legendaryBase then
         local imageUrl = FishImageURL[legendaryBase] or (FishImageCache[legendaryBase] and (PROXY .. "/asset/" .. FishImageCache[legendaryBase])) or nil
@@ -225,6 +232,7 @@ local function CheckAndSend(rawMsg)
         return
     end
 
+    -- // CEK RUBY GEMSTONE //
     local rubyBase = FindRuby(data.fish)
     if rubyBase then
         local imageUrl = FishImageURL[rubyBase] or (FishImageCache[rubyBase] and (PROXY .. "/asset/" .. FishImageCache[rubyBase])) or nil
@@ -236,16 +244,35 @@ local function CheckAndSend(rawMsg)
         return
     end
 
+    -- // CEK SECRET / FORGOTTEN FISH //
     local baseName, mutasi = FindSecretFish(data.fish)
     if not baseName then return end
     local imageUrl = FishImageURL[baseName] or (FishImageCache[baseName] and (PROXY .. "/asset/" .. FishImageCache[baseName])) or nil
     local fishLabel = "**" .. data.fish .. "**"
     if mutasi then fishLabel = "**" .. data.fish .. "** *(mutasi: " .. baseName .. ")*" end
-    SendFishWebhook("🚨 SECRET FISH DETECTED!", nil, 1752220, {
-        {["name"] = "Pemain", ["value"] = "**" .. data.player .. "**", ["inline"] = true},
-        {["name"] = "Ikan",   ["value"] = fishLabel,                   ["inline"] = true},
-        {["name"] = "Berat",  ["value"] = data.weight,                 ["inline"] = true},
-    }, imageUrl, avatarUrl)
+
+    -- Cek apakah Forgotten Tier
+    local isForgotten = false
+    for _, name in ipairs(ForgottenList) do
+        if string.lower(baseName) == string.lower(name) then
+            isForgotten = true
+            break
+        end
+    end
+
+    if isForgotten then
+        SendFishWebhook("🌟 FORGOTTEN TIER DETECTED!", nil, 16777215, {
+            {["name"] = "Pemain", ["value"] = "**" .. data.player .. "**", ["inline"] = true},
+            {["name"] = "Ikan",   ["value"] = fishLabel,                   ["inline"] = true},
+            {["name"] = "Berat",  ["value"] = data.weight,                 ["inline"] = true},
+        }, imageUrl, avatarUrl)
+    else
+        SendFishWebhook("🚨 SECRET FISH DETECTED!", nil, 1752220, {
+            {["name"] = "Pemain", ["value"] = "**" .. data.player .. "**", ["inline"] = true},
+            {["name"] = "Ikan",   ["value"] = fishLabel,                   ["inline"] = true},
+            {["name"] = "Berat",  ["value"] = data.weight,                 ["inline"] = true},
+        }, imageUrl, avatarUrl)
+    end
 end
 
 local function WatchBackpack(player, bp)
@@ -290,7 +317,6 @@ local function StartMonitoring()
     local names = {}
     for _, p in ipairs(allPlayers) do table.insert(names, p.Name) end
 
-    -- Startup notif ke webhook player
     SendPlayerWebhook("🚀 WEBHOOK STARTED", nil, 65280, {
         {["name"] = "Host",          ["value"] = "👤 " .. Players.LocalPlayer.Name,            ["inline"] = true},
         {["name"] = "Total Player",  ["value"] = "👥 " .. tostring(#allPlayers),                ["inline"] = true},
@@ -340,7 +366,7 @@ local function CreateUI()
     gui.ResetOnSpawn = false
     gui.Parent = (gethui and gethui()) or CoreGui
 
-    -- // MAIN FRAME — tinggi diperbesar untuk 2 input //
+    -- Main Frame
     local frame = Instance.new("Frame")
     frame.Name = "Main"
     frame.Size = UDim2.new(0, 310, 0, 230)
@@ -569,7 +595,6 @@ local function CreateUI()
         local fishUrl = inputFish.Text
         local playerUrl = inputPlayer.Text
 
-        -- Minimal salah satu webhook harus valid
         local fishValid = fishUrl:find("discord.com/api/webhooks")
         local playerValid = playerUrl:find("discord.com/api/webhooks")
 
