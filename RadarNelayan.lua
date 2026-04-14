@@ -12,18 +12,63 @@ local TweenService = game:GetService("TweenService")
 local WEBHOOK_URL = ""
 local WEBHOOK_STATS = ""
 local WEBHOOK_FISH = ""
-local DISCORD_ROLE_ID = "1489557585764810802"
 local WEBHOOK_AVATAR = ""
 local PROXY = "https://square-haze-a007.remediashop.workers.dev"
 local SCRIPT_ACTIVE = false
 
+-- // CONFIG SAVE/LOAD //
+local CONFIG_FILE = "radar_nelayan_config.json"
+
+local function SaveConfig(webhookJoin, webhookFish, webhookStats, memberList)
+    if not (writefile and HttpService) then return false end
+    local ok, err = pcall(function()
+        local data = {
+            webhook_join  = webhookJoin  or "",
+            webhook_fish  = webhookFish  or "",
+            webhook_stats = webhookStats or "",
+            members       = memberList   or {},
+        }
+        writefile(CONFIG_FILE, HttpService:JSONEncode(data))
+    end)
+    return ok
+end
+
+local function LoadConfig()
+    if not (readfile and isfile) then return nil end
+    if not isfile(CONFIG_FILE) then return nil end
+    local ok, result = pcall(function()
+        return HttpService:JSONDecode(readfile(CONFIG_FILE))
+    end)
+    if ok and type(result) == "table" then return result end
+    return nil
+end
+
 -- // MEMBER LIST //
 -- Format: { username = "RobloxUsername", display = "DisplayName", id = "DiscordID" }
 -- Bisa pakai Username ATAU DisplayName, keduanya akan dikenali
-local MemberList = {
-    -- { username = "x_ibo21", display = "Ibo", id = "123456789012345678" },
-    -- { username = "PandaBertaring", display = "Panda", id = "987654321098765432" },
-}
+local MemberList = {}
+
+-- // AUTO-LOAD CONFIG SAAT SCRIPT JALAN //
+local _savedConfig = LoadConfig()
+local _preloadWebhookJoin  = ""
+local _preloadWebhookFish  = ""
+local _preloadWebhookStats = ""
+if _savedConfig then
+    _preloadWebhookJoin  = _savedConfig.webhook_join  or ""
+    _preloadWebhookFish  = _savedConfig.webhook_fish  or ""
+    _preloadWebhookStats = _savedConfig.webhook_stats or ""
+    if type(_savedConfig.members) == "table" then
+        for _, m in ipairs(_savedConfig.members) do
+            if type(m) == "table" then
+                table.insert(MemberList, {
+                    username = m.username or "",
+                    display  = m.display  or "",
+                    id       = m.id       or "",
+                })
+            end
+        end
+    end
+end
 
 -- // CACHE DISCORD MENTION (username/displayname -> discordId) //
 local MentionCache = {}
@@ -663,32 +708,39 @@ local function CreateUI()
     gui.ResetOnSpawn = false
     gui.Parent = (gethui and gethui()) or CoreGui
 
+    -- // MAIN FRAME //
     local frame = Instance.new("Frame")
     frame.Name = "Main"
-    frame.Size = UDim2.new(0, 300, 0, 320)
-    frame.Position = UDim2.new(0.5, -150, 0.5, -90)
+    frame.Size = UDim2.new(0, 320, 0, 380)
+    frame.Position = UDim2.new(0.5, -160, 0.5, -190)
     frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     frame.BorderSizePixel = 0
+    frame.ClipsDescendants = true
     frame.Parent = gui
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(50, 50, 50)
+    stroke.Thickness = 1
+    stroke.Parent = frame
 
+    -- // TOP BAR //
     local topBar = Instance.new("Frame")
-    topBar.Size = UDim2.new(1, 0, 0, 36)
-    topBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    topBar.Size = UDim2.new(1, 0, 0, 38)
+    topBar.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
     topBar.BorderSizePixel = 0
     topBar.Parent = frame
-    Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 8)
+    Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 10)
     local topBarFix = Instance.new("Frame")
-    topBarFix.Size = UDim2.new(1, 0, 0, 8)
-    topBarFix.Position = UDim2.new(0, 0, 1, -8)
-    topBarFix.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    topBarFix.Size = UDim2.new(1, 0, 0, 10)
+    topBarFix.Position = UDim2.new(0, 0, 1, -10)
+    topBarFix.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
     topBarFix.BorderSizePixel = 0
     topBarFix.Parent = topBar
 
     local title = Instance.new("TextLabel")
-    title.Text = "🎣 Radar Nelayan Monitor"
-    title.Size = UDim2.new(1, -80, 1, 0)
-    title.Position = UDim2.new(0, 10, 0, 0)
+    title.Text = "🎣 Radar Nelayan"
+    title.Size = UDim2.new(1, -90, 1, 0)
+    title.Position = UDim2.new(0, 12, 0, 0)
     title.BackgroundTransparency = 1
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Font = Enum.Font.GothamBold
@@ -699,7 +751,7 @@ local function CreateUI()
     local minBtn = Instance.new("TextButton")
     minBtn.Text = "—"
     minBtn.Size = UDim2.new(0, 28, 0, 22)
-    minBtn.Position = UDim2.new(1, -58, 0.5, -11)
+    minBtn.Position = UDim2.new(1, -60, 0.5, -11)
     minBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
     minBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
     minBtn.Font = Enum.Font.GothamBold
@@ -711,7 +763,7 @@ local function CreateUI()
     local closeBtn = Instance.new("TextButton")
     closeBtn.Text = "✕"
     closeBtn.Size = UDim2.new(0, 28, 0, 22)
-    closeBtn.Position = UDim2.new(1, -28, 0.5, -11)
+    closeBtn.Position = UDim2.new(1, -30, 0.5, -11)
     closeBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
     closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     closeBtn.Font = Enum.Font.GothamBold
@@ -720,28 +772,25 @@ local function CreateUI()
     closeBtn.Parent = topBar
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
 
+    -- // MINIMIZE / CLOSE LOGIC //
     local isMinimized = false
-    local fullSize = UDim2.new(0, 300, 0, 320)
-    local miniSize = UDim2.new(0, 300, 0, 36)
+    local fullSize = UDim2.new(0, 320, 0, 380)
+    local miniSize = UDim2.new(0, 320, 0, 38)
     minBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
-        if isMinimized then
-            TweenService:Create(frame, TweenInfo.new(0.2), {Size = miniSize}):Play()
-            minBtn.Text = "□"
-        else
-            TweenService:Create(frame, TweenInfo.new(0.2), {Size = fullSize}):Play()
-            minBtn.Text = "—"
-        end
+        TweenService:Create(frame, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {Size = isMinimized and miniSize or fullSize}):Play()
+        minBtn.Text = isMinimized and "□" or "—"
     end)
     closeBtn.MouseButton1Click:Connect(function()
-        TweenService:Create(frame, TweenInfo.new(0.15), {Size = UDim2.new(0, 300, 0, 0), BackgroundTransparency = 1}):Play()
+        TweenService:Create(frame, TweenInfo.new(0.15), {Size = UDim2.new(0, 320, 0, 0), BackgroundTransparency = 1}):Play()
         task.wait(0.2); gui:Destroy()
     end)
-    minBtn.MouseEnter:Connect(function() TweenService:Create(minBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(80, 80, 80)}):Play() end)
-    minBtn.MouseLeave:Connect(function() TweenService:Create(minBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(60, 60, 60)}):Play() end)
-    closeBtn.MouseEnter:Connect(function() TweenService:Create(closeBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(230, 70, 70)}):Play() end)
-    closeBtn.MouseLeave:Connect(function() TweenService:Create(closeBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(200, 50, 50)}):Play() end)
+    minBtn.MouseEnter:Connect(function() TweenService:Create(minBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(80,80,80)}):Play() end)
+    minBtn.MouseLeave:Connect(function() TweenService:Create(minBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(60,60,60)}):Play() end)
+    closeBtn.MouseEnter:Connect(function() TweenService:Create(closeBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(230,70,70)}):Play() end)
+    closeBtn.MouseLeave:Connect(function() TweenService:Create(closeBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(200,50,50)}):Play() end)
 
+    -- // DRAG //
     local dragging, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -758,87 +807,178 @@ local function CreateUI()
         end
     end)
 
+    -- // TAB BAR //
+    local tabBar = Instance.new("Frame")
+    tabBar.Size = UDim2.new(1, -24, 0, 28)
+    tabBar.Position = UDim2.new(0, 12, 0, 44)
+    tabBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    tabBar.BorderSizePixel = 0
+    tabBar.Parent = frame
+    Instance.new("UICorner", tabBar).CornerRadius = UDim.new(0, 6)
+
+    local function makeTab(label, xOffset, w)
+        local btn = Instance.new("TextButton")
+        btn.Text = label
+        btn.Size = UDim2.new(0, w, 1, -4)
+        btn.Position = UDim2.new(0, xOffset, 0, 2)
+        btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        btn.TextColor3 = Color3.fromRGB(140, 140, 140)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 11
+        btn.BorderSizePixel = 0
+        btn.Parent = tabBar
+        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
+        return btn
+    end
+
+    local tabW = (296 - 24) / 2
+    local tabWebhook = makeTab("⚙️ Webhook", 2, tabW)
+    local tabMembers = makeTab("👥 Members", tabW + 4, tabW)
+
+    -- // STATUS BAR //
+    local statusBar = Instance.new("Frame")
+    statusBar.Size = UDim2.new(1, -24, 0, 22)
+    statusBar.Position = UDim2.new(0, 12, 0, 78)
+    statusBar.BackgroundColor3 = Color3.fromRGB(28, 28, 28)
+    statusBar.BorderSizePixel = 0
+    statusBar.Parent = frame
+    Instance.new("UICorner", statusBar).CornerRadius = UDim.new(0, 5)
+
     local statusDot = Instance.new("Frame")
-    statusDot.Size = UDim2.new(0, 8, 0, 8)
-    statusDot.Position = UDim2.new(0, 16, 0, 46)
+    statusDot.Size = UDim2.new(0, 7, 0, 7)
+    statusDot.Position = UDim2.new(0, 8, 0.5, -3)
     statusDot.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
     statusDot.BorderSizePixel = 0
-    statusDot.Parent = frame
+    statusDot.Parent = statusBar
     Instance.new("UICorner", statusDot).CornerRadius = UDim.new(1, 0)
 
     local statusLabel = Instance.new("TextLabel")
     statusLabel.Text = "Tidak Aktif"
-    statusLabel.Size = UDim2.new(1, -40, 0, 20)
-    statusLabel.Position = UDim2.new(0, 30, 0, 38)
+    statusLabel.Size = UDim2.new(1, -24, 1, 0)
+    statusLabel.Position = UDim2.new(0, 22, 0, 0)
     statusLabel.BackgroundTransparency = 1
-    statusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    statusLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
     statusLabel.Font = Enum.Font.Gotham
-    statusLabel.TextSize = 11
+    statusLabel.TextSize = 10
     statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-    statusLabel.Parent = frame
+    statusLabel.Parent = statusBar
 
-    local function makeInput(placeholder, yPos)
+    -- ========================
+    -- // PAGE: WEBHOOK //
+    -- ========================
+    local pageWebhook = Instance.new("Frame")
+    pageWebhook.Size = UDim2.new(1, 0, 1, -108)
+    pageWebhook.Position = UDim2.new(0, 0, 0, 106)
+    pageWebhook.BackgroundTransparency = 1
+    pageWebhook.BorderSizePixel = 0
+    pageWebhook.ClipsDescendants = true
+    pageWebhook.Parent = frame
+
+    local function makeInput(parent, placeholder, yPos)
         local box = Instance.new("TextBox")
         box.PlaceholderText = placeholder
-        box.Size = UDim2.new(1, -24, 0, 30)
+        box.Size = UDim2.new(1, -24, 0, 28)
         box.Position = UDim2.new(0, 12, 0, yPos)
-        box.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        box.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
         box.TextColor3 = Color3.fromRGB(220, 220, 220)
-        box.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
+        box.PlaceholderColor3 = Color3.fromRGB(90, 90, 90)
         box.Font = Enum.Font.Gotham
-        box.TextSize = 10
+        box.TextSize = 9
         box.ClearTextOnFocus = false
         box.BorderSizePixel = 0
         box.Text = ""
         box.TextXAlignment = Enum.TextXAlignment.Left
         box.ClipsDescendants = true
-        box.Parent = frame
+        box.Parent = parent
         Instance.new("UICorner", box).CornerRadius = UDim.new(0, 6)
         local pad = Instance.new("UIPadding", box)
         pad.PaddingLeft = UDim.new(0, 8)
         pad.PaddingRight = UDim.new(0, 8)
+        local s2 = Instance.new("UIStroke", box)
+        s2.Color = Color3.fromRGB(45,45,45)
+        s2.Thickness = 1
         return box
     end
 
-    local function makeLabel(text, yPos)
+    local function makeLabel(parent, text, yPos)
         local lbl = Instance.new("TextLabel")
         lbl.Text = text
-        lbl.Size = UDim2.new(1, -24, 0, 14)
+        lbl.Size = UDim2.new(1, -24, 0, 13)
         lbl.Position = UDim2.new(0, 12, 0, yPos)
         lbl.BackgroundTransparency = 1
-        lbl.TextColor3 = Color3.fromRGB(130, 130, 130)
+        lbl.TextColor3 = Color3.fromRGB(110, 110, 110)
         lbl.Font = Enum.Font.Gotham
-        lbl.TextSize = 10
+        lbl.TextSize = 9
         lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.Parent = frame
+        lbl.Parent = parent
         return lbl
     end
 
-    makeLabel("👋 Webhook Join / Leave", 58)
-    local inputJoin = makeInput("Paste webhook join/leave...", 72)
-    makeLabel("🚨 Webhook Secret Fish", 110)
-    local inputFish = makeInput("Paste webhook secret fish...", 124)
-    makeLabel("📊 Webhook Stats", 162)
-    local inputStats = makeInput("Paste webhook stats...", 176)
-    makeLabel("🔔 Discord Role ID (opsional)", 214)
-    local inputRole = makeInput("Masukkan Role ID...", 228)
+    makeLabel(pageWebhook, "👋 Webhook Join / Leave", 4)
+    local inputJoin = makeInput(pageWebhook, "Paste webhook join/leave...", 18)
+    makeLabel(pageWebhook, "🚨 Webhook Secret Fish", 52)
+    local inputFish = makeInput(pageWebhook, "Paste webhook secret fish...", 66)
+    makeLabel(pageWebhook, "📊 Webhook Stats", 100)
+    local inputStats = makeInput(pageWebhook, "Paste webhook stats...", 114)
+
+    -- // Pre-fill dari config tersimpan //
+    inputJoin.Text  = _preloadWebhookJoin
+    inputFish.Text  = _preloadWebhookFish
+    inputStats.Text = _preloadWebhookStats
+
+    -- Sync _preload vars saat user ketik (supaya tombol Save Members ikut simpan webhook terbaru)
+    inputJoin.FocusLost:Connect(function()  _preloadWebhookJoin  = inputJoin.Text  end)
+    inputFish.FocusLost:Connect(function()  _preloadWebhookFish  = inputFish.Text  end)
+    inputStats.FocusLost:Connect(function() _preloadWebhookStats = inputStats.Text end)
+
+    -- // Tombol row: Save + Start //
+    local saveWHBtn = Instance.new("TextButton")
+    saveWHBtn.Text = "💾 Simpan"
+    saveWHBtn.Size = UDim2.new(0, 84, 0, 30)
+    saveWHBtn.Position = UDim2.new(0, 12, 0, 150)
+    saveWHBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 140)
+    saveWHBtn.TextColor3 = Color3.fromRGB(200, 220, 255)
+    saveWHBtn.Font = Enum.Font.GothamBold
+    saveWHBtn.TextSize = 10
+    saveWHBtn.BorderSizePixel = 0
+    saveWHBtn.Parent = pageWebhook
+    Instance.new("UICorner", saveWHBtn).CornerRadius = UDim.new(0, 7)
 
     local startBtn = Instance.new("TextButton")
-    startBtn.Text = "START MONITORING"
-    startBtn.Size = UDim2.new(1, -24, 0, 34)
-    startBtn.Position = UDim2.new(0, 12, 0, 266)
-    startBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 100)
+    startBtn.Text = "▶  START MONITORING"
+    startBtn.Size = UDim2.new(1, -108, 0, 30)
+    startBtn.Position = UDim2.new(0, 104, 0, 150)
+    startBtn.BackgroundColor3 = Color3.fromRGB(0, 175, 95)
     startBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     startBtn.Font = Enum.Font.GothamBold
-    startBtn.TextSize = 12
+    startBtn.TextSize = 11
     startBtn.BorderSizePixel = 0
-    startBtn.Parent = frame
-    Instance.new("UICorner", startBtn).CornerRadius = UDim.new(0, 6)
+    startBtn.Parent = pageWebhook
+    Instance.new("UICorner", startBtn).CornerRadius = UDim.new(0, 7)
 
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(50, 50, 50)
-    stroke.Thickness = 1
-    stroke.Parent = frame
+    -- // Feedback label bawah //
+    local whFeedback = Instance.new("TextLabel")
+    whFeedback.Text = ""
+    whFeedback.Size = UDim2.new(1, -24, 0, 14)
+    whFeedback.Position = UDim2.new(0, 12, 0, 186)
+    whFeedback.BackgroundTransparency = 1
+    whFeedback.TextColor3 = Color3.fromRGB(100, 200, 120)
+    whFeedback.Font = Enum.Font.Gotham
+    whFeedback.TextSize = 9
+    whFeedback.TextXAlignment = Enum.TextXAlignment.Center
+    whFeedback.Parent = pageWebhook
+
+    saveWHBtn.MouseButton1Click:Connect(function()
+        _preloadWebhookJoin  = inputJoin.Text
+        _preloadWebhookFish  = inputFish.Text
+        _preloadWebhookStats = inputStats.Text
+        local ok = SaveConfig(inputJoin.Text, inputFish.Text, inputStats.Text, MemberList)
+        whFeedback.Text = ok and "✅ Config webhook tersimpan!" or "⚠ Gagal menyimpan (writefile tidak tersedia)"
+        whFeedback.TextColor3 = ok and Color3.fromRGB(100, 200, 120) or Color3.fromRGB(220, 120, 80)
+        task.delay(2.5, function() whFeedback.Text = "" end)
+    end)
+    saveWHBtn.MouseEnter:Connect(function() TweenService:Create(saveWHBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(55, 100, 180)}):Play() end)
+    saveWHBtn.MouseLeave:Connect(function() TweenService:Create(saveWHBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(40, 80, 140)}):Play() end)
 
     startBtn.MouseButton1Click:Connect(function()
         if SCRIPT_ACTIVE then return end
@@ -849,15 +989,13 @@ local function CreateUI()
             startBtn.Text = "❌ WEBHOOK JOIN INVALID!"
             startBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
             task.wait(2)
-            startBtn.Text = "START MONITORING"
-            startBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 100)
+            startBtn.Text = "▶  START MONITORING"
+            startBtn.BackgroundColor3 = Color3.fromRGB(0, 175, 95)
             return
         end
         WEBHOOK_URL = joinText
         if fishText:find("discord.com/api/webhooks") then WEBHOOK_FISH = fishText end
         if statsText:find("discord.com/api/webhooks") then WEBHOOK_STATS = statsText end
-        local roleText = inputRole.Text:match("^%s*(.-)%s*$")
-        if roleText ~= "" then DISCORD_ROLE_ID = roleText end
         SCRIPT_ACTIVE = true
         statusDot.BackgroundColor3 = Color3.fromRGB(0, 220, 100)
         statusLabel.Text = "Aktif — Monitoring..."
@@ -867,16 +1005,354 @@ local function CreateUI()
         inputJoin.TextEditable = false
         inputFish.TextEditable = false
         inputStats.TextEditable = false
-        inputRole.TextEditable = false
         StartMonitoring()
     end)
-
     startBtn.MouseEnter:Connect(function()
-        if not SCRIPT_ACTIVE then TweenService:Create(startBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(0, 210, 120)}):Play() end
+        if not SCRIPT_ACTIVE then TweenService:Create(startBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(0, 200, 110)}):Play() end
     end)
     startBtn.MouseLeave:Connect(function()
-        if not SCRIPT_ACTIVE then TweenService:Create(startBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(0, 180, 100)}):Play() end
+        if not SCRIPT_ACTIVE then TweenService:Create(startBtn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(0, 175, 95)}):Play() end
     end)
+
+    -- ========================
+    -- // PAGE: MEMBERS //
+    -- ========================
+    local pageMembers = Instance.new("Frame")
+    pageMembers.Size = UDim2.new(1, 0, 1, -108)
+    pageMembers.Position = UDim2.new(0, 0, 0, 106)
+    pageMembers.BackgroundTransparency = 1
+    pageMembers.BorderSizePixel = 0
+    pageMembers.ClipsDescendants = true
+    pageMembers.Visible = false
+    pageMembers.Parent = frame
+
+    -- Counter label
+    local memberCountLabel = Instance.new("TextLabel")
+    memberCountLabel.Size = UDim2.new(1, -24, 0, 13)
+    memberCountLabel.Position = UDim2.new(0, 12, 0, 4)
+    memberCountLabel.BackgroundTransparency = 1
+    memberCountLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
+    memberCountLabel.Font = Enum.Font.Gotham
+    memberCountLabel.TextSize = 9
+    memberCountLabel.TextXAlignment = Enum.TextXAlignment.Left
+    memberCountLabel.Parent = pageMembers
+
+    -- Scroll frame untuk slot-slot member
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, -24, 1, -60)
+    scrollFrame.Position = UDim2.new(0, 12, 0, 20)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 3
+    scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(70, 70, 70)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    scrollFrame.Parent = pageMembers
+
+    local slotGrid = Instance.new("UIGridLayout")
+    slotGrid.CellSize = UDim2.new(0, 133, 0, 56)
+    slotGrid.CellPadding = UDim2.new(0, 4, 0, 4)
+    slotGrid.SortOrder = Enum.SortOrder.LayoutOrder
+    slotGrid.Parent = scrollFrame
+
+    -- Tombol row bawah Members: Save + Tambah
+    local saveMBBtn = Instance.new("TextButton")
+    saveMBBtn.Text = "💾 Simpan Members"
+    saveMBBtn.Size = UDim2.new(0.48, 0, 0, 28)
+    saveMBBtn.Position = UDim2.new(0, 0, 1, -30)
+    saveMBBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 140)
+    saveMBBtn.TextColor3 = Color3.fromRGB(200, 220, 255)
+    saveMBBtn.Font = Enum.Font.GothamBold
+    saveMBBtn.TextSize = 9
+    saveMBBtn.BorderSizePixel = 0
+    saveMBBtn.Parent = pageMembers
+    Instance.new("UICorner", saveMBBtn).CornerRadius = UDim.new(0, 6)
+    local saveMBStroke = Instance.new("UIStroke", saveMBBtn)
+    saveMBStroke.Color = Color3.fromRGB(60, 100, 180)
+    saveMBStroke.Thickness = 1
+
+    local addBtn = Instance.new("TextButton")
+    addBtn.Text = "+ Tambah Member"
+    addBtn.Size = UDim2.new(0.48, 0, 0, 28)
+    addBtn.Position = UDim2.new(0.52, 0, 1, -30)
+    addBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    addBtn.TextColor3 = Color3.fromRGB(160, 160, 160)
+    addBtn.Font = Enum.Font.GothamBold
+    addBtn.TextSize = 9
+    addBtn.BorderSizePixel = 0
+    addBtn.Parent = pageMembers
+    Instance.new("UICorner", addBtn).CornerRadius = UDim.new(0, 6)
+    local addStroke = Instance.new("UIStroke", addBtn)
+    addStroke.Color = Color3.fromRGB(55, 55, 55)
+    addStroke.Thickness = 1
+
+    -- Feedback label members
+    local mbFeedback = Instance.new("TextLabel")
+    mbFeedback.Text = ""
+    mbFeedback.Size = UDim2.new(1, 0, 0, 13)
+    mbFeedback.Position = UDim2.new(0, 0, 1, -44)
+    mbFeedback.BackgroundTransparency = 1
+    mbFeedback.TextColor3 = Color3.fromRGB(100, 200, 120)
+    mbFeedback.Font = Enum.Font.Gotham
+    mbFeedback.TextSize = 8
+    mbFeedback.TextXAlignment = Enum.TextXAlignment.Center
+    mbFeedback.Parent = pageMembers
+
+    saveMBBtn.MouseButton1Click:Connect(function()
+        local wJoin  = SCRIPT_ACTIVE and WEBHOOK_URL  or _preloadWebhookJoin
+        local wFish  = SCRIPT_ACTIVE and WEBHOOK_FISH or _preloadWebhookFish
+        local wStats = SCRIPT_ACTIVE and WEBHOOK_STATS or _preloadWebhookStats
+        local ok = SaveConfig(wJoin, wFish, wStats, MemberList)
+        mbFeedback.Text = ok and "✅ Members tersimpan!" or "⚠ Gagal (writefile tidak tersedia)"
+        mbFeedback.TextColor3 = ok and Color3.fromRGB(100, 200, 120) or Color3.fromRGB(220, 120, 80)
+        task.delay(2.5, function() mbFeedback.Text = "" end)
+    end)
+    saveMBBtn.MouseEnter:Connect(function() TweenService:Create(saveMBBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(55, 100, 180)}):Play() end)
+    saveMBBtn.MouseLeave:Connect(function() TweenService:Create(saveMBBtn, TweenInfo.new(0.1), {BackgroundColor3 = Color3.fromRGB(40, 80, 140)}):Play() end)
+
+    -- // POPUP TAMBAH MEMBER //
+    local popup = Instance.new("Frame")
+    popup.Size = UDim2.new(1, -24, 0, 148)
+    popup.Position = UDim2.new(0, 12, 1, -158)
+    popup.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    popup.BorderSizePixel = 0
+    popup.Visible = false
+    popup.ZIndex = 10
+    popup.Parent = frame
+    Instance.new("UICorner", popup).CornerRadius = UDim.new(0, 8)
+    local popupStroke = Instance.new("UIStroke", popup)
+    popupStroke.Color = Color3.fromRGB(60, 60, 60)
+    popupStroke.Thickness = 1
+
+    local popupTitle = Instance.new("TextLabel")
+    popupTitle.Text = "➕ Tambah Member Baru"
+    popupTitle.Size = UDim2.new(1, -12, 0, 28)
+    popupTitle.Position = UDim2.new(0, 10, 0, 0)
+    popupTitle.BackgroundTransparency = 1
+    popupTitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+    popupTitle.Font = Enum.Font.GothamBold
+    popupTitle.TextSize = 10
+    popupTitle.TextXAlignment = Enum.TextXAlignment.Left
+    popupTitle.ZIndex = 10
+    popupTitle.Parent = popup
+
+    local function makePopupInput(ph, yP)
+        local b = Instance.new("TextBox")
+        b.PlaceholderText = ph
+        b.Size = UDim2.new(1, -20, 0, 24)
+        b.Position = UDim2.new(0, 10, 0, yP)
+        b.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        b.TextColor3 = Color3.fromRGB(215, 215, 215)
+        b.PlaceholderColor3 = Color3.fromRGB(80, 80, 80)
+        b.Font = Enum.Font.Gotham
+        b.TextSize = 9
+        b.BorderSizePixel = 0
+        b.Text = ""
+        b.ClearTextOnFocus = false
+        b.TextXAlignment = Enum.TextXAlignment.Left
+        b.ZIndex = 10
+        b.Parent = popup
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
+        local pad = Instance.new("UIPadding", b)
+        pad.PaddingLeft = UDim.new(0, 7)
+        pad.PaddingRight = UDim.new(0, 7)
+        local s = Instance.new("UIStroke", b)
+        s.Color = Color3.fromRGB(50, 50, 50)
+        s.Thickness = 1
+        return b
+    end
+
+    local popupUsername = makePopupInput("Roblox Username...", 28)
+    local popupDisplay  = makePopupInput("Display Name...", 56)
+    local popupDiscord  = makePopupInput("Discord ID (angka)...", 84)
+
+    local popupSave = Instance.new("TextButton")
+    popupSave.Text = "✓ Simpan"
+    popupSave.Size = UDim2.new(0.5, -6, 0, 26)
+    popupSave.Position = UDim2.new(0, 10, 0, 114)
+    popupSave.BackgroundColor3 = Color3.fromRGB(0, 160, 85)
+    popupSave.TextColor3 = Color3.fromRGB(255, 255, 255)
+    popupSave.Font = Enum.Font.GothamBold
+    popupSave.TextSize = 10
+    popupSave.BorderSizePixel = 0
+    popupSave.ZIndex = 10
+    popupSave.Parent = popup
+    Instance.new("UICorner", popupSave).CornerRadius = UDim.new(0, 5)
+
+    local popupCancel = Instance.new("TextButton")
+    popupCancel.Text = "✕ Batal"
+    popupCancel.Size = UDim2.new(0.5, -6, 0, 26)
+    popupCancel.Position = UDim2.new(0.5, -4, 0, 114)
+    popupCancel.BackgroundColor3 = Color3.fromRGB(70, 40, 40)
+    popupCancel.TextColor3 = Color3.fromRGB(220, 180, 180)
+    popupCancel.Font = Enum.Font.GothamBold
+    popupCancel.TextSize = 10
+    popupCancel.BorderSizePixel = 0
+    popupCancel.ZIndex = 10
+    popupCancel.Parent = popup
+    Instance.new("UICorner", popupCancel).CornerRadius = UDim.new(0, 5)
+
+    -- // SLOT MANAGEMENT //
+    local MAX_MEMBERS = 20
+    local slotObjects = {}
+
+    local function UpdateCountLabel()
+        memberCountLabel.Text = "👤 Member terdaftar: " .. #MemberList .. " / " .. MAX_MEMBERS
+    end
+
+    local function ClearSlots()
+        for _, obj in ipairs(slotObjects) do obj:Destroy() end
+        slotObjects = {}
+    end
+
+    local function RebuildSlots()
+        ClearSlots()
+        for i, member in ipairs(MemberList) do
+            local slot = Instance.new("Frame")
+            slot.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            slot.BorderSizePixel = 0
+            slot.LayoutOrder = i
+            slot.Parent = scrollFrame
+            Instance.new("UICorner", slot).CornerRadius = UDim.new(0, 6)
+            local sStroke = Instance.new("UIStroke", slot)
+            sStroke.Color = Color3.fromRGB(48, 48, 48)
+            sStroke.Thickness = 1
+
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Text = member.username ~= "" and member.username or "—"
+            nameLabel.Size = UDim2.new(1, -26, 0, 14)
+            nameLabel.Position = UDim2.new(0, 6, 0, 5)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.TextColor3 = Color3.fromRGB(215, 215, 215)
+            nameLabel.Font = Enum.Font.GothamBold
+            nameLabel.TextSize = 9
+            nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+            nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+            nameLabel.Parent = slot
+
+            local dispLabel = Instance.new("TextLabel")
+            dispLabel.Text = "DN: " .. (member.display ~= "" and member.display or "—")
+            dispLabel.Size = UDim2.new(1, -6, 0, 12)
+            dispLabel.Position = UDim2.new(0, 6, 0, 21)
+            dispLabel.BackgroundTransparency = 1
+            dispLabel.TextColor3 = Color3.fromRGB(110, 110, 110)
+            dispLabel.Font = Enum.Font.Gotham
+            dispLabel.TextSize = 8
+            dispLabel.TextXAlignment = Enum.TextXAlignment.Left
+            dispLabel.TextTruncate = Enum.TextTruncate.AtEnd
+            dispLabel.Parent = slot
+
+            local idLabel = Instance.new("TextLabel")
+            idLabel.Text = "ID: " .. (member.id ~= "" and member.id or "—")
+            idLabel.Size = UDim2.new(1, -6, 0, 12)
+            idLabel.Position = UDim2.new(0, 6, 0, 34)
+            idLabel.BackgroundTransparency = 1
+            idLabel.TextColor3 = Color3.fromRGB(80, 80, 80)
+            idLabel.Font = Enum.Font.Gotham
+            idLabel.TextSize = 7
+            idLabel.TextXAlignment = Enum.TextXAlignment.Left
+            idLabel.TextTruncate = Enum.TextTruncate.AtEnd
+            idLabel.Parent = slot
+
+            local delBtn = Instance.new("TextButton")
+            delBtn.Text = "✕"
+            delBtn.Size = UDim2.new(0, 18, 0, 18)
+            delBtn.Position = UDim2.new(1, -22, 0, 4)
+            delBtn.BackgroundColor3 = Color3.fromRGB(50, 25, 25)
+            delBtn.TextColor3 = Color3.fromRGB(200, 80, 80)
+            delBtn.Font = Enum.Font.GothamBold
+            delBtn.TextSize = 9
+            delBtn.BorderSizePixel = 0
+            delBtn.Parent = slot
+            Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 4)
+
+            local capturedIndex = i
+            delBtn.MouseButton1Click:Connect(function()
+                table.remove(MemberList, capturedIndex)
+                -- Rebuild MentionCache
+                MentionCache = {}
+                for _, p in ipairs(Players:GetPlayers()) do
+                    BuildMentionCache(p.Name, p.DisplayName)
+                end
+                RebuildSlots()
+                UpdateCountLabel()
+            end)
+
+            table.insert(slotObjects, slot)
+        end
+        UpdateCountLabel()
+    end
+
+    RebuildSlots()
+
+    -- // POPUP LOGIKA //
+    local popupOpen = false
+    addBtn.MouseButton1Click:Connect(function()
+        if #MemberList >= MAX_MEMBERS then
+            addBtn.Text = "⚠ Maksimal 20 member!"
+            task.wait(1.5)
+            addBtn.Text = "+ Tambah Member"
+            return
+        end
+        popupOpen = not popupOpen
+        popup.Visible = popupOpen
+        if popupOpen then
+            popupUsername.Text = ""
+            popupDisplay.Text = ""
+            popupDiscord.Text = ""
+        end
+    end)
+
+    popupCancel.MouseButton1Click:Connect(function()
+        popup.Visible = false
+        popupOpen = false
+    end)
+
+    popupSave.MouseButton1Click:Connect(function()
+        local uname = popupUsername.Text:match("^%s*(.-)%s*$") or ""
+        local dname = popupDisplay.Text:match("^%s*(.-)%s*$") or ""
+        local did   = popupDiscord.Text:match("^%s*(.-)%s*$") or ""
+        if uname == "" and dname == "" then
+            popupUsername.PlaceholderText = "⚠ Username wajib diisi!"
+            task.wait(1.5)
+            popupUsername.PlaceholderText = "Roblox Username..."
+            return
+        end
+        if did == "" then
+            popupDiscord.PlaceholderText = "⚠ Discord ID wajib diisi!"
+            task.wait(1.5)
+            popupDiscord.PlaceholderText = "Discord ID (angka)..."
+            return
+        end
+        table.insert(MemberList, { username = uname, display = dname, id = did })
+        -- Update MentionCache langsung
+        if uname ~= "" then MentionCache[string.lower(uname)] = did end
+        if dname ~= "" then MentionCache[string.lower(dname)] = did end
+        popup.Visible = false
+        popupOpen = false
+        RebuildSlots()
+        UpdateCountLabel()
+    end)
+
+    -- // TAB SWITCH //
+    local function setTab(isWebhook)
+        pageWebhook.Visible = isWebhook
+        pageMembers.Visible = not isWebhook
+        popup.Visible = false
+        popupOpen = false
+        if isWebhook then
+            TweenService:Create(tabWebhook, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(0, 155, 85), TextColor3 = Color3.fromRGB(255,255,255)}):Play()
+            TweenService:Create(tabMembers, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(30,30,30), TextColor3 = Color3.fromRGB(140,140,140)}):Play()
+        else
+            TweenService:Create(tabMembers, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(0, 120, 200), TextColor3 = Color3.fromRGB(255,255,255)}):Play()
+            TweenService:Create(tabWebhook, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(30,30,30), TextColor3 = Color3.fromRGB(140,140,140)}):Play()
+        end
+    end
+
+    setTab(true) -- default tab = webhook
+
+    tabWebhook.MouseButton1Click:Connect(function() setTab(true) end)
+    tabMembers.MouseButton1Click:Connect(function() setTab(false) end)
 end
 
 -- // INITIALIZE //
