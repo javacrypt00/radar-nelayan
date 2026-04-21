@@ -88,7 +88,7 @@ local SecretFishList = {
     "Pirate Megalodon", "Viridis Lurker", "Cursed Kraken", "Ancient Magma Whale",
     "Rainbow Comet Shark", "Love Nessie", "Broken Heart Nessie",
     "Mutant Runic Koi", "Ketupat Whale", "Cosmic Mutant Shark", "Strawberry Orca",
-    "Bonemaw Tyrant",
+    "Bonemaw Tyrant", "Deepsea Monster Axolotl",
     -- Forgotten Tier
     "Sea Eater", "Thunderzilla", "Iridesca",
 }
@@ -156,6 +156,7 @@ local FishChanceData = {
     ["Thunderzilla"] = "1 in 30M",
     ["Iridesca"] = "1 in 25M",
     ["Eggy Enchant Stone"] = "1 in 100K",
+    ["Deepsea Monster Axolotl"] = "1 in 2M",
 }
 
 -- // DATABASE MYTHIC TIER //
@@ -217,6 +218,7 @@ local FishImageURL = {
     ["Eggy Enchant Stone"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Eggy%20Enchant%20Stone.png",
     ["Worm Fish"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Worm%20Fish.png",
     ["Iridesca"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Iridesca.png",
+    ["Deepsea Monster Axolotl"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Deepsea%20Monster%20Axolotl.jpeg",
 }
 
 -- // CACHE TAMBAHAN DARI BACKPACK MONITOR //
