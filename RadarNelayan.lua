@@ -157,7 +157,7 @@ local FishChanceData = {
     ["Iridesca"] = "1 in 25M",
     ["Eggy Enchant Stone"] = "1 in 100K",
     ["Deepsea Monster Axolotl"] = "1 in 2M",
-    ["Blocky Monster Lochness"] = "1 in 3M",
+    ["Blocky Lochness Monster"] = "1 in 3M",
     ["Frostbite Leviathan"] = "1 in 12M",
 }
 
@@ -221,7 +221,7 @@ local FishImageURL = {
     ["Worm Fish"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Worm%20Fish.png",
     ["Iridesca"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Iridesca.png",
     ["Deepsea Monster Axolotl"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Deepsea%20Monster%20Axolotl.jpeg",
-    ["Blocky Monster Lochness"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Blocky%20Lochness%20Monster.jpeg",
+    ["Blocky Lochness Monster"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Blocky%20Lochness%20Monster.jpeg",
     ["Frostbite Leviathan"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Frostbite%20Leviathan.jpeg",
 }
 
