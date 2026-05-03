@@ -162,7 +162,7 @@ local FishChanceData = {
 
 -- // DATABASE MYTHIC TIER //
 local MythicList = {
-    "Eggy Enchant Stone"
+    "Runic Enchant Stone"
 }
 
 -- // DATABASE RUBY GEMSTONE //
@@ -216,13 +216,12 @@ local FishImageURL = {
     ["Thin Armored Shark"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Thin%20Armor%20Shark.png",
     ["Thunderzilla"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Thunderzilla.png",
     ["Strawberry Orca"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Strawberry%20Orca.png",
-    ["Eggy Enchant Stone"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Eggy%20Enchant%20Stone.png",
+    ["Aurelion"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Aurelion.png",
     ["Worm Fish"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Worm%20Fish.png",
     ["Iridesca"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Iridesca.png",
     ["Deepsea Monster Axolotl"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Deepsea%20Monster%20Axolotl.jpeg",
     ["Blocky Lochness Monster"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Blocky%20Lochness%20Monster.jpeg",
     ["Frostbite Leviathan"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Frostbite%20Leviathan.jpeg",
-    ["Aurelion"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Aurelion.png",
 }
 
 local FishImageCache = {}
@@ -512,7 +511,7 @@ local function CheckAndSend(rawMsg)
 
     if isForgotten then
         -- ✅ FORGOTTEN TIER — webhook sama (WEBHOOK_FISH), embed beda
-        SendFishWebhook("🌟 GELLO FORGOTTEN !", nil, 16777215, {
+        SendFishWebhook("🌟 FORGOTTEN TIER DETECTED!", nil, 16777215, {
             {["name"] = "Pemain",  ["value"] = "**" .. data.player .. "**", ["inline"] = true},
             {["name"] = "Ikan",    ["value"] = ikanField,                   ["inline"] = true},
             {["name"] = "Mutasi",  ["value"] = mutasiField,                 ["inline"] = true},
@@ -986,10 +985,9 @@ local function CreateUI()
 
     startBtn.MouseButton1Click:Connect(function()
         if SCRIPT_ACTIVE then return end
-        local joinText      = inputJoin.Text
-        local fishText      = inputFish.Text
-        local forgottenText = inputForgotten.Text
-        local statsText     = inputStats.Text
+        local joinText  = inputJoin.Text
+        local fishText  = inputFish.Text
+        local statsText = inputStats.Text
         if not joinText:find("discord.com/api/webhooks") then
             startBtn.Text = "❌ WEBHOOK JOIN INVALID!"
             startBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
