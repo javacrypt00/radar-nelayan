@@ -44,11 +44,9 @@ local function LoadConfig()
 end
 
 -- // MEMBER LIST //
--- Format: { username = "RobloxUsername", display = "DisplayName", id = "DiscordID" }
--- Bisa pakai Username ATAU DisplayName, keduanya akan dikenali
 local MemberList = {}
 
--- // AUTO-LOAD CONFIG SAAT SCRIPT JALAN //
+-- // AUTO-LOAD CONFIG //
 local _savedConfig = LoadConfig()
 local _preloadWebhookJoin  = ""
 local _preloadWebhookFish  = ""
@@ -70,7 +68,7 @@ if _savedConfig then
     end
 end
 
--- // CACHE DISCORD MENTION (username/displayname -> discordId) //
+-- // CACHE DISCORD MENTION //
 local MentionCache = {}
 
 -- // DATABASE NAMA SECRET FISH //
@@ -88,7 +86,7 @@ local SecretFishList = {
     "Pirate Megalodon", "Viridis Lurker", "Cursed Kraken", "Ancient Magma Whale",
     "Rainbow Comet Shark", "Love Nessie", "Broken Heart Nessie",
     "Mutant Runic Koi", "Ketupat Whale", "Cosmic Mutant Shark", "Strawberry Orca",
-    "Bonemaw Tyrant", "Deepsea Monster Axolotl", "Blocky Lochness Monster",
+    "Bonemaw Tyrant", "Deepsea Monster Axolotl", "Blocky Lochness Monster", "Aurelion",
     -- Forgotten Tier
     "Sea Eater", "Thunderzilla", "Iridesca", "Frostbite Leviathan",
 }
@@ -159,6 +157,7 @@ local FishChanceData = {
     ["Deepsea Monster Axolotl"] = "1 in 2M",
     ["Blocky Lochness Monster"] = "1 in 3M",
     ["Frostbite Leviathan"] = "1 in 12M",
+    ["Aurelion"] = "1 in 3M",
 }
 
 -- // DATABASE MYTHIC TIER //
@@ -223,18 +222,12 @@ local FishImageURL = {
     ["Deepsea Monster Axolotl"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Deepsea%20Monster%20Axolotl.jpeg",
     ["Blocky Lochness Monster"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Blocky%20Lochness%20Monster.jpeg",
     ["Frostbite Leviathan"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Frostbite%20Leviathan.jpeg",
+    ["Aurelion"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Aurelion.png",
 }
 
--- // CACHE TAMBAHAN DARI BACKPACK MONITOR //
 local FishImageCache = {}
-
--- // CACHE AVATAR PLAYER (simpan sebelum player leave) //
 local AvatarCache = {}
-
--- // TIMER PLAYER TIDAK BALIK (10 menit) //
 local LeaveTimers = {}
-
--- // PLAYER STATS TRACKER //
 local PlayerStats = {}
 local PlayerNameToId = {}
 
@@ -256,7 +249,7 @@ local function SendStatsWebhook(title, description, color, fields, imageUrl, thu
     end)
 end
 
--- // FISH WEBHOOK SENDER //
+-- // FISH WEBHOOK SENDER (Secret Tier) //
 local function SendFishWebhook(title, description, color, fields, imageUrl, thumbUrl, mention)
     local requestFunc = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
     if not requestFunc then return end
@@ -269,7 +262,7 @@ local function SendFishWebhook(title, description, color, fields, imageUrl, thum
     end
     local embed = {
         ["title"] = title, ["description"] = description, ["color"] = color, ["fields"] = finalFields,
-        ["footer"] = {["text"] = "Radar Nelayan Webhook | " .. os.date("%X")},
+        ["footer"] = {["text"] = "Radar Nelayan | " .. os.date("%X")},
         ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
     }
     if imageUrl then embed["image"] = {["url"] = imageUrl} end
@@ -281,7 +274,7 @@ local function SendFishWebhook(title, description, color, fields, imageUrl, thum
     end)
 end
 
--- // WEBHOOK SENDER //
+-- // JOIN/LEAVE WEBHOOK SENDER //
 local function SendWebhook(title, description, color, fields, imageUrl, thumbUrl, mention)
     local requestFunc = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
     if not requestFunc then return end
@@ -312,11 +305,7 @@ end
 local function GetMention(robloxName)
     if not robloxName then return "" end
     local lower = string.lower(robloxName)
-    -- Cek MentionCache dulu
-    if MentionCache[lower] then
-        return "<@" .. MentionCache[lower] .. "> "
-    end
-    -- Fallback: cek MemberList langsung (username dan display)
+    if MentionCache[lower] then return "<@" .. MentionCache[lower] .. "> " end
     for _, member in ipairs(MemberList) do
         if string.lower(member.username) == lower or string.lower(member.display) == lower then
             return "<@" .. member.id .. "> "
@@ -338,7 +327,7 @@ local function BuildMentionCache(rbxName, rbxDisplay)
     end
 end
 
--- // FIND PLAYER (toleran nama) //
+-- // FIND PLAYER //
 local function FindPlayer(name)
     local p = Players:FindFirstChild(name)
     if p then return p end
@@ -358,14 +347,12 @@ local function StripTags(str)
     return string.gsub(str, "<[^>]+>", "")
 end
 
--- // CEK SECRET FISH + SUPPORT MUTASI //
+-- // CEK SECRET FISH //
 local function FindSecretFish(fishName)
     local lower = string.lower(fishName)
-    -- PASS 1: Exact match
     for _, baseName in ipairs(SecretFishList) do
         if lower == string.lower(baseName) then return baseName, nil end
     end
-    -- PASS 2: Longest match
     local bestBase, bestLen, bestMutasi = nil, 0, nil
     for _, baseName in ipairs(SecretFishList) do
         local s = string.find(lower, string.lower(baseName), 1, true)
@@ -383,7 +370,7 @@ local function FindSecretFish(fishName)
     return bestBase, bestMutasi
 end
 
--- // CEK MYTHIC TIER //
+-- // CEK MYTHIC //
 local function FindMythic(fishName)
     local lower = string.lower(fishName)
     for _, name in ipairs(MythicList) do
@@ -392,7 +379,7 @@ local function FindMythic(fishName)
     return nil
 end
 
--- // CEK RUBY GEMSTONE //
+-- // CEK RUBY //
 local function FindRuby(fishName)
     local lower = string.lower(fishName)
     if not string.find(lower, "ruby") then return nil end
@@ -448,7 +435,7 @@ local function ParseChat(rawMsg)
     return { player = playerName, fish = fishFull, weight = weight, chance = chanceStr or "N/A" }
 end
 
--- // PROSES PESAN CHAT SERVER //
+-- // PROSES PESAN CHAT //
 local function CheckAndSend(rawMsg)
     if not SCRIPT_ACTIVE then return end
     if not string.find(string.lower(rawMsg), "obtained") then return end
@@ -466,6 +453,7 @@ local function CheckAndSend(rawMsg)
         PlayerStats[uid].lastFishTime = os.time()
     end
 
+    -- // CRYSTALIZED LEGENDARY //
     local legendaryBase = FindLegendaryCrystal(data.fish)
     if legendaryBase then
         local imageUrl = FishImageURL[legendaryBase] or (FishImageCache[legendaryBase] and (PROXY .. "/asset/" .. FishImageCache[legendaryBase])) or nil
@@ -478,6 +466,7 @@ local function CheckAndSend(rawMsg)
         return
     end
 
+    -- // MYTHIC TIER //
     local mythicBase = FindMythic(data.fish)
     if mythicBase then
         local imageUrl = FishImageURL[mythicBase] or nil
@@ -489,6 +478,7 @@ local function CheckAndSend(rawMsg)
         return
     end
 
+    -- // RUBY GEMSTONE //
     local rubyBase = FindRuby(data.fish)
     if rubyBase then
         local imageUrl = FishImageURL[rubyBase] or (FishImageCache[rubyBase] and (PROXY .. "/asset/" .. FishImageCache[rubyBase])) or nil
@@ -500,10 +490,12 @@ local function CheckAndSend(rawMsg)
         return
     end
 
+    -- // SECRET / FORGOTTEN FISH //
     local baseName, mutasi = FindSecretFish(data.fish)
     if not baseName then return end
     local imageUrl = FishImageURL[baseName] or (FishImageCache[baseName] and (PROXY .. "/asset/" .. FishImageCache[baseName])) or nil
 
+    -- Cek apakah Forgotten Tier
     local isForgotten = false
     for _, name in ipairs(ForgottenList) do
         if string.lower(baseName) == string.lower(name) then isForgotten = true; break end
@@ -514,19 +506,22 @@ local function CheckAndSend(rawMsg)
         PlayerStats[uid].secretList[baseName] = existing + 1
     end
 
-    local chanceInfo = FishChanceData[baseName] or "Unknown"
-    local ikanField = "**" .. data.fish .. "**"
+    local chanceInfo  = FishChanceData[baseName] or "Unknown"
+    local ikanField   = "**" .. data.fish .. "**"
     local mutasiField = mutasi and ("*" .. mutasi .. "*") or "-"
 
     if isForgotten then
-        SendFishWebhook("🌟 FORGOTTEN TIER DETECTED!", nil, 16777215, {
+        -- ✅ FORGOTTEN TIER — webhook sama (WEBHOOK_FISH), embed beda
+        SendFishWebhook("🌟 GELLO FORGOTTEN !", nil, 16777215, {
             {["name"] = "Pemain",  ["value"] = "**" .. data.player .. "**", ["inline"] = true},
             {["name"] = "Ikan",    ["value"] = ikanField,                   ["inline"] = true},
             {["name"] = "Mutasi",  ["value"] = mutasiField,                 ["inline"] = true},
             {["name"] = "Berat",   ["value"] = data.weight,                 ["inline"] = true},
             {["name"] = "Chance",  ["value"] = "🎲 " .. chanceInfo,         ["inline"] = true},
+            {["name"] = "Tier",    ["value"] = "⭐ **FORGOTTEN**",           ["inline"] = true},
         }, imageUrl, avatarUrl, GetMention(data.player))
     else
+        -- ✅ SECRET FISH — webhook sama (WEBHOOK_FISH), embed beda
         SendFishWebhook("🚨 SECRET FISH DETECTED!", nil, 1752220, {
             {["name"] = "Pemain",  ["value"] = "**" .. data.player .. "**", ["inline"] = true},
             {["name"] = "Ikan",    ["value"] = ikanField,                   ["inline"] = true},
@@ -558,7 +553,7 @@ local function WatchForFish(player)
     end)
 end
 
--- // HOOK CHAT SERVER //
+-- // HOOK CHAT //
 local function HookChat()
     if TextChatService then
         TextChatService.MessageReceived:Connect(function(msg)
@@ -576,7 +571,7 @@ local function HookChat()
     end
 end
 
--- // STARTUP WEBHOOK //
+-- // START MONITORING //
 local function StartMonitoring()
     local allPlayers = Players:GetPlayers()
     local names = {}
@@ -588,7 +583,7 @@ local function StartMonitoring()
     })
     HookChat()
 
-    -- // KIRIM STATS TIAP 20 MENIT //
+    -- Stats tiap 20 menit
     task.spawn(function()
         while SCRIPT_ACTIVE do
             task.wait(1200)
@@ -678,8 +673,8 @@ local function StartMonitoring()
         local secretStr = #secretLines > 0 and table.concat(secretLines, ", ") or "Tidak ada"
 
         SendWebhook("👋 PLAYER LEFT SERVER", nil, 16729344, {
-            {["name"] = "Username", ["value"] = "**" .. pName .. "**",        ["inline"] = true},
-            {["name"] = "Total",    ["value"] = "👥 " .. tostring(totalNow),  ["inline"] = true}
+            {["name"] = "Username", ["value"] = "**" .. pName .. "**",       ["inline"] = true},
+            {["name"] = "Total",    ["value"] = "👥 " .. tostring(totalNow), ["inline"] = true}
         }, nil, avatarUrl, GetMention(pName))
 
         task.spawn(function()
@@ -715,6 +710,7 @@ local function CreateUI()
     gui.Parent = (gethui and gethui()) or CoreGui
 
     -- // MAIN FRAME //
+    -- Tinggi frame diperbesar dari 380 → 420 untuk menampung input Forgotten
     local frame = Instance.new("Frame")
     frame.Name = "Main"
     frame.Size = UDim2.new(0, 320, 0, 380)
@@ -778,7 +774,7 @@ local function CreateUI()
     closeBtn.Parent = topBar
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
 
-    -- // MINIMIZE / CLOSE LOGIC //
+    -- // MINIMIZE / CLOSE //
     local isMinimized = false
     local fullSize = UDim2.new(0, 320, 0, 380)
     local miniSize = UDim2.new(0, 320, 0, 38)
@@ -922,22 +918,24 @@ local function CreateUI()
 
     makeLabel(pageWebhook, "👋 Webhook Join / Leave", 4)
     local inputJoin = makeInput(pageWebhook, "Paste webhook join/leave...", 18)
-    makeLabel(pageWebhook, "🚨 Webhook Secret Fish", 52)
+
+    makeLabel(pageWebhook, "🚨 Webhook Secret Fish (+ Forgotten Tier)", 52)
     local inputFish = makeInput(pageWebhook, "Paste webhook secret fish...", 66)
+
     makeLabel(pageWebhook, "📊 Webhook Stats", 100)
     local inputStats = makeInput(pageWebhook, "Paste webhook stats...", 114)
 
-    -- // Pre-fill dari config tersimpan //
+    -- Pre-fill dari config tersimpan
     inputJoin.Text  = _preloadWebhookJoin
     inputFish.Text  = _preloadWebhookFish
     inputStats.Text = _preloadWebhookStats
 
-    -- Sync _preload vars saat user ketik (supaya tombol Save Members ikut simpan webhook terbaru)
+    -- Sync saat user ketik
     inputJoin.FocusLost:Connect(function()  _preloadWebhookJoin  = inputJoin.Text  end)
     inputFish.FocusLost:Connect(function()  _preloadWebhookFish  = inputFish.Text  end)
     inputStats.FocusLost:Connect(function() _preloadWebhookStats = inputStats.Text end)
 
-    -- // Tombol row: Save + Start //
+    -- Tombol Save + Start
     local saveWHBtn = Instance.new("TextButton")
     saveWHBtn.Text = "💾 Simpan"
     saveWHBtn.Size = UDim2.new(0, 84, 0, 30)
@@ -962,7 +960,7 @@ local function CreateUI()
     startBtn.Parent = pageWebhook
     Instance.new("UICorner", startBtn).CornerRadius = UDim.new(0, 7)
 
-    -- // Feedback label bawah //
+    -- Feedback
     local whFeedback = Instance.new("TextLabel")
     whFeedback.Text = ""
     whFeedback.Size = UDim2.new(1, -24, 0, 14)
@@ -988,9 +986,10 @@ local function CreateUI()
 
     startBtn.MouseButton1Click:Connect(function()
         if SCRIPT_ACTIVE then return end
-        local joinText = inputJoin.Text
-        local fishText = inputFish.Text
-        local statsText = inputStats.Text
+        local joinText      = inputJoin.Text
+        local fishText      = inputFish.Text
+        local forgottenText = inputForgotten.Text
+        local statsText     = inputStats.Text
         if not joinText:find("discord.com/api/webhooks") then
             startBtn.Text = "❌ WEBHOOK JOIN INVALID!"
             startBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
@@ -1000,7 +999,7 @@ local function CreateUI()
             return
         end
         WEBHOOK_URL = joinText
-        if fishText:find("discord.com/api/webhooks") then WEBHOOK_FISH = fishText end
+        if fishText:find("discord.com/api/webhooks")  then WEBHOOK_FISH  = fishText  end
         if statsText:find("discord.com/api/webhooks") then WEBHOOK_STATS = statsText end
         SCRIPT_ACTIVE = true
         statusDot.BackgroundColor3 = Color3.fromRGB(0, 220, 100)
@@ -1008,8 +1007,8 @@ local function CreateUI()
         statusLabel.TextColor3 = Color3.fromRGB(0, 220, 100)
         startBtn.Text = "✅ MONITORING AKTIF"
         startBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        inputJoin.TextEditable = false
-        inputFish.TextEditable = false
+        inputJoin.TextEditable  = false
+        inputFish.TextEditable  = false
         inputStats.TextEditable = false
         StartMonitoring()
     end)
@@ -1032,7 +1031,6 @@ local function CreateUI()
     pageMembers.Visible = false
     pageMembers.Parent = frame
 
-    -- Counter label
     local memberCountLabel = Instance.new("TextLabel")
     memberCountLabel.Size = UDim2.new(1, -24, 0, 13)
     memberCountLabel.Position = UDim2.new(0, 12, 0, 4)
@@ -1043,7 +1041,6 @@ local function CreateUI()
     memberCountLabel.TextXAlignment = Enum.TextXAlignment.Left
     memberCountLabel.Parent = pageMembers
 
-    -- Scroll frame untuk slot-slot member
     local scrollFrame = Instance.new("ScrollingFrame")
     scrollFrame.Size = UDim2.new(1, -24, 1, -60)
     scrollFrame.Position = UDim2.new(0, 12, 0, 20)
@@ -1061,7 +1058,6 @@ local function CreateUI()
     slotGrid.SortOrder = Enum.SortOrder.LayoutOrder
     slotGrid.Parent = scrollFrame
 
-    -- Tombol row bawah Members: Save + Tambah
     local saveMBBtn = Instance.new("TextButton")
     saveMBBtn.Text = "💾 Simpan Members"
     saveMBBtn.Size = UDim2.new(0.48, 0, 0, 28)
@@ -1092,7 +1088,6 @@ local function CreateUI()
     addStroke.Color = Color3.fromRGB(55, 55, 55)
     addStroke.Thickness = 1
 
-    -- Feedback label members
     local mbFeedback = Instance.new("TextLabel")
     mbFeedback.Text = ""
     mbFeedback.Size = UDim2.new(1, 0, 0, 13)
@@ -1105,8 +1100,8 @@ local function CreateUI()
     mbFeedback.Parent = pageMembers
 
     saveMBBtn.MouseButton1Click:Connect(function()
-        local wJoin  = SCRIPT_ACTIVE and WEBHOOK_URL  or _preloadWebhookJoin
-        local wFish  = SCRIPT_ACTIVE and WEBHOOK_FISH or _preloadWebhookFish
+        local wJoin  = SCRIPT_ACTIVE and WEBHOOK_URL   or _preloadWebhookJoin
+        local wFish  = SCRIPT_ACTIVE and WEBHOOK_FISH  or _preloadWebhookFish
         local wStats = SCRIPT_ACTIVE and WEBHOOK_STATS or _preloadWebhookStats
         local ok = SaveConfig(wJoin, wFish, wStats, MemberList)
         mbFeedback.Text = ok and "✅ Members tersimpan!" or "⚠ Gagal (writefile tidak tersedia)"
@@ -1275,7 +1270,6 @@ local function CreateUI()
             local capturedIndex = i
             delBtn.MouseButton1Click:Connect(function()
                 table.remove(MemberList, capturedIndex)
-                -- Rebuild MentionCache
                 MentionCache = {}
                 for _, p in ipairs(Players:GetPlayers()) do
                     BuildMentionCache(p.Name, p.DisplayName)
@@ -1331,7 +1325,6 @@ local function CreateUI()
             return
         end
         table.insert(MemberList, { username = uname, display = dname, id = did })
-        -- Update MentionCache langsung
         if uname ~= "" then MentionCache[string.lower(uname)] = did end
         if dname ~= "" then MentionCache[string.lower(dname)] = did end
         popup.Visible = false
@@ -1355,8 +1348,7 @@ local function CreateUI()
         end
     end
 
-    setTab(true) -- default tab = webhook
-
+    setTab(true)
     tabWebhook.MouseButton1Click:Connect(function() setTab(true) end)
     tabMembers.MouseButton1Click:Connect(function() setTab(false) end)
 end
