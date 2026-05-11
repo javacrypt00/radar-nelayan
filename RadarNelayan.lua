@@ -86,7 +86,7 @@ local SecretFishList = {
     "Pirate Megalodon", "Viridis Lurker", "Cursed Kraken", "Ancient Magma Whale",
     "Rainbow Comet Shark", "Love Nessie", "Broken Heart Nessie",
     "Mutant Runic Koi", "Ketupat Whale", "Cosmic Mutant Shark", "Strawberry Orca",
-    "Bonemaw Tyrant", "Deepsea Monster Axolotl", "Blocky Lochness Monster", "Aurelion",
+    "Bonemaw Tyrant", "Deepsea Monster Axolotl", "Blocky Lochness Monster", "Aurelion", "Frogalloon", "Runic Enchant Stone",
     -- Forgotten Tier
     "Sea Eater", "Thunderzilla", "Iridesca", "Frostbite Leviathan",
 }
@@ -158,11 +158,7 @@ local FishChanceData = {
     ["Blocky Lochness Monster"] = "1 in 3M",
     ["Frostbite Leviathan"] = "1 in 12M",
     ["Aurelion"] = "1 in 3M",
-}
-
--- // DATABASE MYTHIC TIER //
-local MythicList = {
-    "Runic Enchant Stone"
+    ["Frogalloon"] = "1 in 1,50M",
 }
 
 -- // DATABASE RUBY GEMSTONE //
@@ -222,6 +218,7 @@ local FishImageURL = {
     ["Deepsea Monster Axolotl"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Deepsea%20Monster%20Axolotl.jpeg",
     ["Blocky Lochness Monster"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Blocky%20Lochness%20Monster.jpeg",
     ["Frostbite Leviathan"] = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Frostbite%20Leviathan.jpeg",
+    ["Frogalloon"]                = "https://raw.githubusercontent.com/revkatomy-max/asset-id/main/Frogallon.png",
 }
 
 local FishImageCache = {}
@@ -367,15 +364,6 @@ local function FindSecretFish(fishName)
         end
     end
     return bestBase, bestMutasi
-end
-
--- // CEK MYTHIC //
-local function FindMythic(fishName)
-    local lower = string.lower(fishName)
-    for _, name in ipairs(MythicList) do
-        if string.find(lower, string.lower(name), 1, true) then return name end
-    end
-    return nil
 end
 
 -- // CEK RUBY //
